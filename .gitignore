@@ -1,0 +1,9 @@
+# Arquivo de cofre com senha
+.env
+
+#Pastas de Cache do Python
+__pycache__/
+*.pyc
+
+# Pasta de Configuração do Vs Code
+.vscode/
