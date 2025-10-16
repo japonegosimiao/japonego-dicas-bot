@@ -56,4 +56,10 @@ async def visitar_shopee_como_humano():
 
 
 if __name__ == "__main__":
-    asyncio.run(visitar_shopee_como_humano())
+    asyncio.run(visitar_shopee_como_humano())   
+
+
+
+
+
+

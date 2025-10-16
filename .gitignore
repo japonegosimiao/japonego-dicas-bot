@@ -1,9 +1,14 @@
 # Arquivo de cofre com senha
 .env
+config.py        # impede que tokens reais sejam enviados
 
-#Pastas de Cache do Python
+# Pastas de ambientes virtuais
+venv/
+venv313/
+
+# Pastas de Cache do Python
 __pycache__/
 *.pyc
 
-# Pasta de Configuração do Vs Code
+# Pasta de Configuração do VS Code
 .vscode/

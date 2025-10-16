@@ -1,64 +1,77 @@
-# Importando TODOS os nossos livros de mágica
 import os
 from dotenv import load_dotenv
+from telegram import Bot
 import asyncio
-import telegram
-from wordpress_xmlrpc import Client, WordPressPost
-from wordpress_xmlrpc.methods.posts import NewPost
+import requests
+from requests.auth import HTTPBasicAuth
 
-# O bot abre o cofre .env e lê TUDO
+# ------------------------------
+# Carrega variáveis do .env
+# ------------------------------
 load_dotenv()
 
-# Pegando TODAS as nossas credenciais do cofre
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-MEU_CHAT_ID = os.getenv("CHAT_ID")
-WP_URL = "https://japonegodicas.com/xmlrpc.php"
+# --- Telegram ---
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+# --- WordPress ---
+WP_URL = os.getenv("WP_URL")
 WP_USER = os.getenv("WP_USER")
-WP_PASSWORD = os.getenv("WP_PASSWORD")
+WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")
 
+# --- Exemplo de afiliados ---
+AMAZON_TAG = os.getenv("AMAZON_TAG")
+SHOPEE_AFF_ID = os.getenv("SHOPEE_AFF_ID")
 
-# --- MÁGICA 1: A RECEITA PARA POSTAR NO WORDPRESS ---
-def postar_no_wordpress():
-    print("Iniciando a postagem no WordPress...")
+# ------------------------------
+# Função assíncrona para enviar mensagem no Telegram
+# ------------------------------
+bot = Bot(token=TELEGRAM_TOKEN)
+
+async def enviar_telegram(text):
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        print("❌ Token ou Chat ID do Telegram não configurados corretamente no .env")
+        return
     try:
-        client = Client(WP_URL, WP_USER, WP_PASSWORD)
-        
-        post = WordPressPost()
-        post.title = "Bot Adolescente: Teste de Fusão!"
-        post.content = "Este post foi criado E notificado no Telegram pelo mesmo robô! A máquina está evoluindo! 🤖"
-        post.post_status = 'publish'
-        
-        post_id = client.call(NewPost(post))
-        
-        print(f"Post criado com sucesso no WordPress! ID do post: {post_id}")
-        return post_id # Devolve o ID do post para a gente usar depois
+        await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=text)
+        print("✅ Mensagem enviada com sucesso no Telegram!")
     except Exception as e:
-        print(f"DEU RUIM! Erro ao postar no WordPress: {e}")
-        return None # Devolve "Nada" se deu erro
+        print(f"❌ Erro ao enviar mensagem no Telegram: {e}")
 
-# --- MÁGICA 2: A RECEITA PARA NOTIFICAR NO TELEGRAM ---
-async def notificar_telegram(mensagem):
-    print("Iniciando notificação no Telegram...")
+# ------------------------------
+# Função para criar post no WordPress
+# ------------------------------
+def criar_post_wordpress(title, content, status="draft"):
+    if not WP_URL or not WP_USER or not WP_APP_PASSWORD:
+        print("❌ WordPress não configurado corretamente no .env")
+        return
     try:
-        bot = telegram.Bot(token=TELEGRAM_TOKEN)
-        await bot.send_message(chat_id=MEU_CHAT_ID, text=mensagem)
-        print("Notificação enviada com sucesso no Telegram!")
+        post_data = {
+            "title": title,
+            "content": content,
+            "status": status
+        }
+        response = requests.post(
+            f"{WP_URL}/wp-json/wp/v2/posts",
+            json=post_data,
+            auth=HTTPBasicAuth(WP_USER, WP_APP_PASSWORD)
+        )
+        if response.status_code in [200, 201]:
+            print(f"✅ Post criado com sucesso no WordPress!\n📎 Link: {response.json().get('link')}")
+        else:
+            print(f"❌ Erro ao criar post no WordPress: {response.status_code} - {response.text}")
     except Exception as e:
-        print(f"DEU RUIM! Erro ao notificar no Telegram: {e}")
+        print(f"❌ Erro na integração com WordPress: {e}")
 
-# --- O GRANDE CHEFE QUE ORQUESTRA TUDO ---
+# ------------------------------
+# Executa testes
+# ------------------------------
 if __name__ == "__main__":
-    # 1. O Chefe manda a Mágica 1 trabalhar
-    novo_post_id = postar_no_wordpress()
-    
-    # 2. O Chefe verifica se a Mágica 1 teve sucesso
-    if novo_post_id:
-        # Se teve sucesso, o Chefe prepara a mensagem para a Mágica 2
-        mensagem_telegram = f"NOVO POST NO SITE! 📢\n\nAcabei de publicar um novo post de teste! O ID dele é {novo_post_id}. A fusão foi um sucesso!"
-        
-        # 3. O Chefe manda a Mágica 2 trabalhar
-        asyncio.run(notificar_telegram(mensagem_telegram))
-    else:
-        print("A publicação no site falhou. Portanto, nenhuma notificação foi enviada.")
-        
-    print("\n--- Processo de Fusão Finalizado ---")
+    texto_telegram = "🚀 Bot funcionando! Teste de mensagem no Telegram e WP."
+    asyncio.run(enviar_telegram(texto_telegram))
+
+    # Descomente para criar post de teste no WordPress
+    criar_post_wordpress(
+        title="Post de Teste do Bot",
+        content="Este post foi criado automaticamente pelo bot."
+    )
